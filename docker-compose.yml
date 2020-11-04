@@ -1,0 +1,247 @@
+version: '3.7'
+
+networks:
+  frontend:
+    driver: ${NETWORKS_DRIVER}
+  backend:
+    driver: ${NETWORKS_DRIVER}
+
+volumes:
+  persist:
+    driver: ${VOLUMES_DRIVER}
+
+  mysql-8.0:
+    driver: ${VOLUMES_DRIVER}
+  mysql-5.7:
+    driver: ${VOLUMES_DRIVER}
+
+  redis:
+    driver: ${VOLUMES_DRIVER}
+
+  elasticsearch-7.7.1:
+    driver: ${VOLUMES_DRIVER}
+  elasticsearch-5.4.1:
+    driver: ${VOLUMES_DRIVER}
+
+  nginx-ssl:
+    driver: ${VOLUMES_DRIVER}
+
+services:
+
+### Workspace Utilities ##################################
+    app-7.4: &app
+      build: &app-build
+        context: .
+        dockerfile: app/Dockerfile
+        args: &app-build-args
+          http_proxy: ${http_proxy:-}
+          https_proxy: ${https_proxy:-}
+          no_proxy: ${no_proxy:-}
+
+          APP_CODE_PATH_CONTAINER: ${APP_CODE_PATH_CONTAINER}
+          CHANGE_SOURCE: ${CHANGE_SOURCE}
+          UBUNTU_SOURCE: ${UBUNTU_SOURCE}
+
+          TZ: ${TIMEZONE}
+          PUID: ${USER_PUID}
+          PGID: ${USER_PGID}
+          DOCKER_GID: ${HOST_DOCKER_GID}
+
+          BASE_IMAGE_TAG_PREFIX: ${APP_BASE_IMAGE_TAG_PREFIX}
+
+          INSTALL_NODE: ${INSTALL_NODE}
+          INSTALL_YARN: ${INSTALL_YARN}
+          INSTALL_PYTHON: ${INSTALL_PYTHON}
+          INSTALL_DOCKER: ${INSTALL_DOCKER}
+          INSTALL_DOCKVALET: ${INSTALL_DOCKVALET}
+          INSTALL_LARADOCK_CLI: ${INSTALL_LARADOCK_CLI}
+          INSTALL_XDEBUG: ${INSTALL_XDEBUG}
+
+          LARADOCK_PHP_VERSION: '7.4'
+      volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app/php/php7.4.ini:/usr/local/etc/php/php.ini
+      - ./custom/valet-drivers:/opt/dockvalet/.config/Drivers
+      - ${HOME}/.ssh:/home/laradock/.ssh
+      - persist:/opt/persist
+      - .:${APP_CODE_PATH_CONTAINER}/.laradock${APP_CODE_CONTAINER_FLAG}
+      - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}${APP_CODE_CONTAINER_FLAG}
+      - ${HOST_LOG_PATH}/fpm:/var/log/fpm
+      tty: true
+      environment: &app-environment
+        PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
+        LARADOCK_PHP_VERSION: '7.4'
+      networks:
+      - backend
+      links:
+      - 'dockerhost:host.docker.internal'
+
+    app-7.2:
+      <<: *app
+      build:
+        <<: *app-build
+        args:
+          <<: *app-build-args
+          LARADOCK_PHP_VERSION: '7.2'
+      environment:
+        <<: *app-environment
+        LARADOCK_PHP_VERSION: '7.2'
+
+### NGINX Server #########################################
+    nginx:
+      build:
+        context: ./nginx
+        args:
+          http_proxy: ${http_proxy:-}
+          https_proxy: ${https_proxy:-}
+          no_proxy: ${no_proxy:-}
+
+          CHANGE_SOURCE: ${CHANGE_SOURCE}
+          INSTALL_DOCKVALET: ${INSTALL_DOCKVALET}
+      volumes:
+      - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}${APP_CODE_CONTAINER_FLAG}
+      - ${HOST_LOG_PATH}/nginx:/var/log/nginx
+      - ./custom/sites:/etc/nginx/sites-available
+      - nginx-ssl:/etc/nginx/ssl
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      ports:
+      - "${NGINX_HOST_HTTP_PORT}:80"
+      - "${NGINX_HOST_HTTPS_PORT}:443"
+      networks:
+      - frontend
+      - backend
+
+### MySQL ################################################
+    mysql-8.0: &mysql
+      build: &mysql-build
+        context: ./mysql
+        args: &mysql-build-args
+          MYSQL_VERSION: '8.0'
+      environment:
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        TZ: ${TIMEZONE}
+      volumes:
+      - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+      - mysql-8.0:/var/lib/mysql
+      ports:
+      - "${MYSQL_8_0_PORT}:3306"
+      networks:
+      - backend
+
+    mysql-5.7:
+      <<: *mysql
+      build:
+        <<: *mysql-build
+        args:
+          <<: *mysql-build-args
+          MYSQL_VERSION: '5.7'
+      volumes:
+      - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+      - mysql-5.7:/var/lib/mysql
+      ports:
+      - "${MYSQL_5_7_PORT}:3306"
+
+### Redis ################################################
+    redis:
+      build: ./redis
+      volumes:
+      - redis:/data
+      ports:
+      - "${REDIS_PORT}:6379"
+      networks:
+      - backend
+
+### phpMyAdmin ###########################################
+    pma:
+      build: ./pma
+      environment:
+      - PMA_ARBITRARY=1
+      - MYSQL_USER=${PMA_USER}
+      - MYSQL_PASSWORD=${PMA_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${PMA_ROOT_PASSWORD}
+      networks:
+      - backend
+
+### ElasticSearch ########################################
+    elasticsearch-7.7.1:
+      build:
+        context: ./elasticsearch-7.7.1
+      volumes:
+      - elasticsearch-7.7.1:/usr/share/elasticsearch/data
+      environment:
+      - cluster.name=laradock-cluster
+      - node.name=laradock-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - cluster.initial_master_nodes=laradock-node
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+        nofile:
+          soft: 65536
+          hard: 65536
+      networks:
+      - backend
+
+    elasticsearch-5.4.1:
+      build:
+        context: ./elasticsearch-5.4.1
+      volumes:
+      - elasticsearch-5.4.1:/usr/share/elasticsearch/data
+      environment:
+      - transport.host=127.0.0.1
+      - cluster.name=laradock-cluster
+      - node.name=laradock-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - xpack.security.enabled=false
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+      networks:
+      - backend
+
+### Kibana ##############################################
+    kibana-7.7.1: &kibana
+      build: &kibana-build
+        context: ./kibana
+        args: &kibana-build-args
+          ELK_VERSION: '7.7.1'
+          KIBANA_HOST: kibana-7.7.1
+          ELASTICSEARCH_HOST: elasticsearch-7.7.1
+      depends_on:
+      - elasticsearch-7.7.1
+      networks:
+      - backend
+
+    kibana-5.4.1:
+      <<: *kibana
+      build:
+        <<: *kibana-build
+        args:
+          <<: *kibana-build-args
+          ELK_VERSION: '5.4.1'
+          KIBANA_HOST: kibana-5.4.1
+          ELASTICSEARCH_HOST: elasticsearch-5.4.1
+      depends_on:
+      - elasticsearch-5.4.1
+
+### Mailhog ################################################
+    mailhog:
+      build: ./mailhog
+      networks:
+      - backend
+
+### Dockerhost #############################################
+    dockerhost:
+      image: qoomon/docker-host
+      cap_add: [ 'NET_ADMIN', 'NET_RAW' ]
+      restart: on-failure
+      networks:
+      - backend
