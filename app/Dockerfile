@@ -337,8 +337,11 @@ RUN apt-get clean && \
 
 USER laradock
 ADD ./app/bin/startup.sh ./app/bin/restart-fpm ./app/bin/xdebug-toggle /opt/
-RUN sudo chmod +x /opt/restart-fpm /opt/xdebug-toggle
 
+USER root
+RUN chmod +x /opt/restart-fpm /opt/xdebug-toggle
+
+USER laradock
 STOPSIGNAL SIGQUIT
 CMD ["/bin/bash", "/opt/startup.sh"]
 
