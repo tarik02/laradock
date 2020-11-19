@@ -3,8 +3,12 @@ version: '3.7'
 networks:
   frontend:
     driver: ${NETWORKS_DRIVER}
+    driver_opts:
+      com.docker.network.driver.mtu: 1350
   backend:
     driver: ${NETWORKS_DRIVER}
+    driver_opts:
+      com.docker.network.driver.mtu: 1350
 
 volumes:
   persist:
@@ -235,6 +239,14 @@ services:
 ### Mailhog ################################################
     mailhog:
       build: ./mailhog
+      networks:
+      - backend
+
+### Docker Web GUI #########################################
+    docker-web-gui:
+      build: ./docker-web-gui
+      volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       networks:
       - backend
 

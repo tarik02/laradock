@@ -1,0 +1,3 @@
+[submodule "docker-web-gui/docker-web-gui"]
+	path = docker-web-gui/docker-web-gui
+	url = https://github.com/rakibtg/docker-web-gui.git
