@@ -11,6 +11,8 @@ networks:
       com.docker.network.driver.mtu: 1350
 
 volumes:
+  code:
+    driver: ${VOLUMES_DRIVER}
   persist:
     driver: ${VOLUMES_DRIVER}
 

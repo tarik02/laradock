@@ -341,6 +341,11 @@ ADD ./app/bin/startup.sh ./app/bin/restart-fpm ./app/bin/xdebug-toggle /opt/
 USER root
 RUN chmod +x /opt/restart-fpm /opt/xdebug-toggle
 
+RUN set -xe; \
+	mkdir -p ${APP_CODE_PATH_CONTAINER}/.laradock; \
+	chown laradock:laradock ${APP_CODE_PATH_CONTAINER}; \
+	chown laradock:laradock ${APP_CODE_PATH_CONTAINER}/.laradock
+
 USER laradock
 STOPSIGNAL SIGQUIT
 CMD ["/bin/bash", "/opt/startup.sh"]
