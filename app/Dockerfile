@@ -256,7 +256,12 @@ USER laradock
 
 ARG INSTALL_LARADOCK_CLI=false
 ENV LARADOCK_ROOT=${APP_CODE_PATH_CONTAINER}
+ENV LARADOCK_CLI=/opt/laradock-cli.py
 
+USER root
+RUN touch ${LARADOCK_CLI} && chown laradock:laradock ${LARADOCK_CLI}
+
+USER laradock
 RUN set -xe; \
 	if [ ${INSTALL_LARADOCK_CLI} = true ]; then \
 		if [ ${INSTALL_PYTHON} != true ]; then \
@@ -269,8 +274,8 @@ RUN set -xe; \
 		;fi \
 			&& python3 -m pip install python-dotenv \
 			&& curl -fsSL https://github.com/Tarik02/laradock-cli/raw/master/install.sh | bash \
+			&& $HOME/.local/bin/laradock download \
 	;fi
-
 
 ###########################################################################
 # PHP-FPM:
