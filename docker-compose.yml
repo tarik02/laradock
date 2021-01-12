@@ -11,6 +11,8 @@ networks:
       com.docker.network.driver.mtu: 1350
 
 volumes:
+  code:
+    driver: ${VOLUMES_DRIVER}
   persist:
     driver: ${VOLUMES_DRIVER}
 
@@ -75,6 +77,7 @@ services:
       environment: &app-environment
         PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
         LARADOCK_PHP_VERSION: '7.4'
+      hostname: app-7.4
       networks:
       - backend
       links:
@@ -90,6 +93,7 @@ services:
       environment:
         <<: *app-environment
         LARADOCK_PHP_VERSION: '7.2'
+      hostname: app-7.2
 
 ### NGINX Server #########################################
     nginx:
