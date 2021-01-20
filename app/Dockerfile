@@ -1,13 +1,18 @@
-ARG LARADOCK_PHP_VERSION
-ARG BASE_IMAGE_TAG_PREFIX=latest
-FROM laradock/workspace:${BASE_IMAGE_TAG_PREFIX}-${LARADOCK_PHP_VERSION}
+FROM phusion/baseimage:master
 
-LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
+LABEL maintainer="Tarik02 <Taras.Fomin@gmail.com>"
 
 ARG LARADOCK_PHP_VERSION
 
 # Set Environment Variables
 ENV DEBIAN_FRONTEND noninteractive
+RUN locale-gen en_US.UTF-8
+
+ENV LANGUAGE=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV TERM xterm
 
 # If you're in China, or you need to change sources, will be set CHANGE_SOURCE to true in .env.
 
@@ -21,6 +26,55 @@ RUN if [ ${CHANGE_SOURCE} = true ]; then \
 
 # Start as root
 USER root
+
+# Add the "PHP" ppa
+RUN apt-get install -y software-properties-common && \
+	add-apt-repository -y ppa:ondrej/php
+
+#
+#--------------------------------------------------------------------------
+# Software's Installation
+#--------------------------------------------------------------------------
+#
+
+RUN echo 'DPkg::options { "--force-confdef"; };' >> /etc/apt/apt.conf
+
+# Install "PHP Extentions", "libraries", "Software's"
+RUN apt-get update && \
+	apt-get upgrade -y && \
+	apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages \
+		php${LARADOCK_PHP_VERSION}-cli \
+		php${LARADOCK_PHP_VERSION}-common \
+		php${LARADOCK_PHP_VERSION}-curl \
+		php${LARADOCK_PHP_VERSION}-intl \
+		php${LARADOCK_PHP_VERSION}-json \
+		php${LARADOCK_PHP_VERSION}-xml \
+		php${LARADOCK_PHP_VERSION}-mbstring \
+		php${LARADOCK_PHP_VERSION}-mysql \
+		php${LARADOCK_PHP_VERSION}-pgsql \
+		php${LARADOCK_PHP_VERSION}-sqlite \
+		php${LARADOCK_PHP_VERSION}-sqlite3 \
+		php${LARADOCK_PHP_VERSION}-zip \
+		php${LARADOCK_PHP_VERSION}-bcmath \
+		php${LARADOCK_PHP_VERSION}-memcached \
+		php${LARADOCK_PHP_VERSION}-gd \
+		php${LARADOCK_PHP_VERSION}-dev \
+		pkg-config \
+		libcurl4-openssl-dev \
+		libedit-dev \
+		libssl-dev \
+		libxml2-dev \
+		xz-utils \
+		libsqlite3-dev \
+		rsync \
+		sqlite3 \
+		git \
+		curl \
+		vim \
+		nano \
+		tree \
+		postgresql-client \
+	&& apt-get clean
 
 ###########################################################################
 # Laradock non-root user:
@@ -212,12 +266,12 @@ RUN set -xe; \
 	if [ ${INSTALL_DOCKER} = true ]; then \
 		# install docker
 		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-			&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+			&& add-apt-repository "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
 			&& apt-get update \
 			&& apt-get install docker-ce-cli \
 			# install docker-compose
-			&& curl -L "https://github.com/docker/compose/releases/download/1.26.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
-			&& chmod +x /usr/local/bin/docker-compose \
+			#&& curl -L "https://github.com/docker/compose/releases/download/1.26.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
+			#&& chmod +x /usr/local/bin/docker-compose \
 	;fi
 
 ARG DOCKER_GID
