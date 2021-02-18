@@ -237,6 +237,21 @@ RUN set -xe; \
 
 
 ###########################################################################
+# Python 2:
+###########################################################################
+
+USER root
+
+ARG INSTALL_PYTHON27=false
+
+RUN set -xe; \
+	if [ ${INSTALL_PYTHON27} = true ]; then \
+		apt-get -y install python2.7 python2.7-dev \
+			&& update-alternatives --install /usr/bin/python2 python2 /usr/bin/python2.7 2 \
+	;fi
+
+
+###########################################################################
 # Python 3:
 ###########################################################################
 
@@ -249,7 +264,8 @@ RUN set -xe; \
 		apt-get -y install python3 python3-dev python3-setuptools build-essential \
 			&& curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
 			&& python3 get-pip.py \
-			&& python3 -m pip install --upgrade pip  \
+			&& rm get-pip.py \
+			&& python3 -m pip install --upgrade pip \
 			&& python3 -m pip install --upgrade virtualenv \
 	;fi
 
