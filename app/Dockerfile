@@ -1,3 +1,5 @@
+# syntax = edrevo/dockerfile-plus
+
 FROM phusion/baseimage:master
 
 LABEL maintainer="Tarik02 <Taras.Fomin@gmail.com>"
@@ -388,13 +390,7 @@ RUN mkdir /run/php
 # Install custom things:
 ###########################################################################
 
-USER root
-
-ADD ./custom/install.d /opt/install.d
-RUN set -xe; \
-	for i in $(ls /opt/install.d); do \
-		bash /opt/install.d/$i; \
-	done
+INCLUDE+ custom/app/Dockerfile
 
 
 ###########################################################################
