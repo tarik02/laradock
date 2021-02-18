@@ -157,9 +157,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 USER root
 
-# Install composer 1
+# Install composer
 RUN rm -f /usr/local/bin/composer && \
-	curl -s http://getcomposer.org/installer | php -- --version=1.10.17 && \
+	curl -s http://getcomposer.org/installer | php && \
 	mv composer.phar /usr/local/bin/composer
 
 
