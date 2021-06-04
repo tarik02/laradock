@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Start crond in background
-crond -l 2 -b
+sudo cron -l
 
 # Fix owner
 sudo chown laradock:laradock /opt/persist
+sudo chown laradock:laradock /home/laradock/.vscode-server
 
 # Start php-fpm in background
 

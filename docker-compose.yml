@@ -16,23 +16,21 @@ volumes:
   persist:
     driver: ${VOLUMES_DRIVER}
 
-  mysql-8.0:
-    driver: ${VOLUMES_DRIVER}
-  mysql-5.7:
-    driver: ${VOLUMES_DRIVER}
-
-  mariadb-10.5.8:
+  mysql-8:
     driver: ${VOLUMES_DRIVER}
 
   redis:
     driver: ${VOLUMES_DRIVER}
 
-  elasticsearch-7.7.1:
+  elasticsearch-7:
     driver: ${VOLUMES_DRIVER}
-  elasticsearch-5.4.1:
+  elasticsearch-5:
     driver: ${VOLUMES_DRIVER}
 
   nginx-ssl:
+    driver: ${VOLUMES_DRIVER}
+
+  vscode-server:
     driver: ${VOLUMES_DRIVER}
 
 services:
@@ -74,9 +72,11 @@ services:
       - ./custom/valet-drivers:/opt/dockvalet/.config/Drivers
       - ${HOME}/.ssh:/home/laradock/.ssh
       - persist:/opt/persist
+      - vscode-server:/home/laradock/.vscode-server
       - .:${APP_CODE_PATH_CONTAINER}/.laradock${APP_CODE_CONTAINER_FLAG}
       - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}${APP_CODE_CONTAINER_FLAG}
       - ${HOST_LOG_PATH}/fpm:/var/log/fpm
+      - ./sockets:/opt/sockets
       tty: true
       environment: &app-environment
         PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
@@ -124,12 +124,11 @@ services:
       - frontend
       - backend
 
-### MySQL ################################################
-    mysql-8.0: &mysql
-      build: &mysql-build
-        context: ./mysql
-        args: &mysql-build-args
-          MYSQL_VERSION: '8.0'
+    mysql-8: &mariadb
+      build: &mariadb-build
+        context: ./mariadb
+        args: &mariadb-build-args
+          MARIADB_VERSION: '10.5.8'
       environment:
         MYSQL_DATABASE: ${MYSQL_DATABASE}
         MYSQL_USER: ${MYSQL_USER}
@@ -137,33 +136,12 @@ services:
         MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         TZ: ${TIMEZONE}
       volumes:
-      - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
-      - mysql-8.0:/var/lib/mysql
+      - mysql-8:/var/lib/mysql
+      - ./sockets:/sockets:Z
       ports:
-      - "${MYSQL_8_0_PORT}:3306"
+      - "${MYSQL_8_PORT}:3306"
       networks:
       - backend
-
-    mysql-5.7:
-      <<: *mysql
-      build:
-        <<: *mysql-build
-        args:
-          <<: *mysql-build-args
-          MYSQL_VERSION: '5.7'
-      volumes:
-      - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
-      - mysql-5.7:/var/lib/mysql
-      ports:
-      - "${MYSQL_5_7_PORT}:3306"
-
-    mariadb-10.5.8: &mariadb
-      build: &mariadb-build
-        context: ./mariadb
-        args: &mariadb-build-args
-          MARIADB_VERSION: '10.5.8'
-      volumes:
-      - mariadb-10.5.8:/var/lib/mysql
 
 ### Redis ################################################
     redis:
@@ -187,15 +165,14 @@ services:
       - backend
 
 ### ElasticSearch ########################################
-    elasticsearch-7.7.1:
+    elasticsearch-7:
       build:
-        context: ./elasticsearch-7.7.1
+        context: ./elasticsearch-7
       volumes:
-      - elasticsearch-7.7.1:/usr/share/elasticsearch/data
+      - elasticsearch-7:/usr/share/elasticsearch/data
       environment:
       - cluster.name=laradock-cluster
       - node.name=laradock-node
-      - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
       - cluster.initial_master_nodes=laradock-node
       ulimits:
@@ -208,16 +185,15 @@ services:
       networks:
       - backend
 
-    elasticsearch-5.4.1:
+    elasticsearch-5:
       build:
-        context: ./elasticsearch-5.4.1
+        context: ./elasticsearch-5
       volumes:
-      - elasticsearch-5.4.1:/usr/share/elasticsearch/data
+      - elasticsearch-5:/usr/share/elasticsearch/data
       environment:
       - transport.host=127.0.0.1
       - cluster.name=laradock-cluster
       - node.name=laradock-node
-      - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
       - xpack.security.enabled=false
       ulimits:
@@ -228,29 +204,29 @@ services:
       - backend
 
 ### Kibana ##############################################
-    kibana-7.7.1: &kibana
+    kibana-7: &kibana
       build: &kibana-build
         context: ./kibana
         args: &kibana-build-args
-          ELK_VERSION: '7.7.1'
-          KIBANA_HOST: kibana-7.7.1
-          ELASTICSEARCH_HOST: elasticsearch-7.7.1
+          ELK_VERSION: '7.12.0'
+          KIBANA_HOST: kibana-7
+          ELASTICSEARCH_HOST: elasticsearch-7
       depends_on:
-      - elasticsearch-7.7.1
+      - elasticsearch-7
       networks:
       - backend
 
-    kibana-5.4.1:
+    kibana-5:
       <<: *kibana
       build:
         <<: *kibana-build
         args:
           <<: *kibana-build-args
           ELK_VERSION: '5.4.1'
-          KIBANA_HOST: kibana-5.4.1
-          ELASTICSEARCH_HOST: elasticsearch-5.4.1
+          KIBANA_HOST: kibana-5
+          ELASTICSEARCH_HOST: elasticsearch-5
       depends_on:
-      - elasticsearch-5.4.1
+      - elasticsearch-5
 
 ### Mailhog ################################################
     mailhog:
