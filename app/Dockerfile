@@ -231,10 +231,11 @@ RUN set -xe; \
 RUN set -xe; \
 	if [ ${INSTALL_YARN} = true ]; then \
 		eval "$($HOME/.fnm/fnm env)" \
-			&& $HOME/.fnm/fnm use 14 \
-			&& curl -o- -L https://yarnpkg.com/install.sh | bash \
+			&& $HOME/.fnm/fnm use 10 && npm i -g yarn \
+			&& $HOME/.fnm/fnm use 12 && npm i -g yarn \
+			&& $HOME/.fnm/fnm use 14 && npm i -g yarn \
 			&& echo "# Yarn bin" >> ~/.bashrc \
-			&& echo 'export PATH="$HOME/.yarn/bin:$PATH"' >> ~/.bashrc \
+			&& echo "export PATH=\"$(yarn global bin):$PATH\"" >> ~/.bashrc \
 	;fi
 
 
