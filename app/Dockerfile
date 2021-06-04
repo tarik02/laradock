@@ -291,6 +291,8 @@ RUN set -xe; \
 			&& if [ $(uname -m) = "x86_64" ]; then \
 				curl -L "https://github.com/docker/compose/releases/download/1.26.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
 					&& chmod +x /usr/local/bin/docker-compose \
+			;elif [ ${INSTALL_PYTHON} = true ]; then \
+				python3 -m pip install docker-compose \
 			;fi \
 	;fi
 
